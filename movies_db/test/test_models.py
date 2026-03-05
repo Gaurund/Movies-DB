@@ -21,8 +21,7 @@ class TestDiskModel(TestCase):
             st_dev="sda1",
         )
         self.session.add(disk)
-        self.session.commit()
-        file = File(
+        file1 = File(
             id=1,
             file_name="test_file.mkv",
             disk_path="/path/to/disk/image",
@@ -32,7 +31,18 @@ class TestDiskModel(TestCase):
             is_active=True,
             disk_id=1,
         )
-        self.session.add(file)
+        self.session.add(file1)
+        file2 = File(
+            id=2,
+            file_name="test_file_2.mkv",
+            disk_path="/path/to/disk/image",
+            st_ino="12350",
+            last_modified=datetime(2020, 5, 1, 11, 0, 0),
+            size=1000000,
+            is_active=True,
+            disk_id=1,
+        )
+        self.session.add(file2)
         self.session.commit()
         self.disk = self.session.get(Disk, 1)
         self.file = self.session.get(File, 1)
@@ -50,6 +60,9 @@ class TestDiskModel(TestCase):
         self.assertEqual(self.disk.disk_free, 500000000)
         self.assertEqual(self.disk.st_dev, "sda1")
         self.assertIsNone(self.none_disk)
+        self.assertEqual(len(self.disk.files), 2)
+        self.assertEqual(self.disk.files[0].file_name, "test_file.mkv")
+        self.assertEqual(self.disk.files[1].file_name, "test_file_2.mkv")
 
     def test_file_model_creation(self):
         self.assertEqual(self.file.id, 1)
