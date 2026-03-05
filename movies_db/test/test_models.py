@@ -1,8 +1,9 @@
+from datetime import datetime
 from unittest import TestCase
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
-from movies_db.models import Base, Disk
+from movies_db.models import Base, Disk, File
 
 
 class TestDiskModel(TestCase):
@@ -21,7 +22,20 @@ class TestDiskModel(TestCase):
         )
         self.session.add(disk)
         self.session.commit()
+        file = File(
+            id=1,
+            file_name="test_file.mkv",
+            disk_path="/path/to/disk/image",
+            st_ino="12345",
+            last_modified=datetime(2024, 6, 1, 12, 0, 0),
+            size=1000000,
+            is_active=True,
+            disk_id=1,
+        )
+        self.session.add(file)
+        self.session.commit()
         self.disk = self.session.get(Disk, 1)
+        self.file = self.session.get(File, 1)
         self.none_disk = self.session.get(Disk, 0)
 
     def tearDown(self):
@@ -36,4 +50,13 @@ class TestDiskModel(TestCase):
         self.assertEqual(self.disk.disk_free, 500000000)
         self.assertEqual(self.disk.st_dev, "sda1")
         self.assertIsNone(self.none_disk)
-        print("Disk model creation test passed.")
+
+    def test_file_model_creation(self):
+        self.assertEqual(self.file.id, 1)
+        self.assertEqual(self.file.file_name, "test_file.mkv")
+        self.assertEqual(self.file.disk_path, "/path/to/disk/image")
+        self.assertEqual(self.file.st_ino, "12345")
+        self.assertEqual(self.file.last_modified, datetime(2024, 6, 1, 12, 0, 0))
+        self.assertEqual(self.file.size, 1000000)
+        self.assertTrue(self.file.is_active)
+        self.assertEqual(self.file.disk_id, 1)
