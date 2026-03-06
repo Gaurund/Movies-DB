@@ -1,6 +1,15 @@
 from typing import List
 from datetime import time, datetime
-from sqlalchemy import BigInteger, Boolean, ForeignKey, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+    Time,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -8,7 +17,41 @@ class Base(DeclarativeBase):
     pass
 
 
+movies_persons_table = Table(
+    "movies_persons_table",
+    Base.metadata,
+    Column("person_id", ForeignKey("person_table.id"), primary_key=True),
+    Column("movie_id", ForeignKey("movie_table.id"), primary_key=True),
+)
+
+
+class Type(Base):
+    """The table to store different types.
+    `type_name`: a name of a type
+    `russian_type_name`: a russian translation of the type's name
+    `movies`: a list of movies with such type"""
+
+    __tablename__ = "type_table"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    type_name: Mapped[str] = mapped_column(String(32))
+    russian_type_name: Mapped[str] = mapped_column(String(32), nullable=True)
+
+    movies: Mapped[List["Movie"]] = relationship(back_populates="movie_type")
+
+
 class File(Base):
+    """The table to store files.
+
+    `file_name`: the name of the file.
+    `disk_path`: the path to the file on disk excluding the file name.
+    `st_ino`: the inode number of the file on disk.
+    `hash`: the hash of the first 4KB of the file.
+    `last_modified`: the last modification date of the file.
+    `size`: the size of the file in bytes.
+    `is_active`: a boolean that answers is file consider deleted from DB.
+    `disk_id`: the foreign key to the disk table."""
+
     __tablename__ = "file_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -23,11 +66,20 @@ class File(Base):
     disk_id: Mapped[int] = mapped_column(ForeignKey("disk_table.id"))
     disk: Mapped["Disk"] = relationship(back_populates="files")
 
-    # movie_id: Mapped[int] = mapped_column(ForeignKey("movie_table.id"), nullable=True)
-    # movie: Mapped["Movie"] = relationship(back_populates="files")
+    movie_id: Mapped[int] = mapped_column(ForeignKey("movie_table.id"), nullable=True)
+    movie: Mapped["Movie"] = relationship(back_populates="files")
 
 
 class Disk(Base):
+    """The table to store disks and flash drives.
+
+    `disk_name`: the name of the disk.
+    `disk_image`: the path to the disk image if it exists.
+    `disk_capacity`: the capacity of the disk in bytes.
+    `disk_free`: the free space on the disk in bytes.
+    `st_dev`: the device number of the disk on the system.
+    `files`: a list of files linked to the disk."""
+
     __tablename__ = "disk_table"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -39,9 +91,9 @@ class Disk(Base):
 
     files: Mapped[List[File]] = relationship(back_populates="disk")
 
+
 class Movie(Base):
-    """
-    The table to store movies and TV shows.
+    """The table to store movies and TV shows.
 
     `name_original`: an original name of the movie.
     `name_russian`: a russian translation of the name.
@@ -51,8 +103,7 @@ class Movie(Base):
     `description`: some details one would like to write down.
     `active`: a boolean that answers is movie consider deleted from DB.
     `files`: a list of files linked to the movie.
-    `genres`: a list of genres linked to the movie.
-    """
+    `genres`: a list of genres linked to the movie."""
 
     __tablename__ = "movie_table"
 
@@ -68,21 +119,42 @@ class Movie(Base):
     files: Mapped[List[File]] = relationship(back_populates="movie")
 
     type_id: Mapped[int] = mapped_column(ForeignKey("type_table.id"), nullable=True)
-    movie_type: Mapped["Type"] = relationship( back_populates="movies")
+    movie_type: Mapped["Type"] = relationship(back_populates="movies")
 
-    franchise_id: Mapped[int] = mapped_column(ForeignKey("franchise_table.id"), nullable=True)
-    franchise: Mapped["Franchise"] = relationship(back_populates="movies")
-    franchise_part: Mapped[int] = mapped_column(Integer, nullable=True)
+    # franchise_id: Mapped[int] = mapped_column(ForeignKey("franchise_table.id"), nullable=True)
+    # franchise: Mapped["Franchise"] = relationship(back_populates="movies")
+    # franchise_part: Mapped[int] = mapped_column(Integer, nullable=True)
 
-    genres: Mapped[List["Genre"]] = relationship(
-        secondary=genres_movies_table, back_populates="movies"
+    # genres: Mapped[List["Genre"]] = relationship(
+    #     secondary=genres_movies_table, back_populates="movies"
+    # )
+
+    # actors: Mapped[List["Person"]] = relationship(
+    #     secondary=actors_movies_table, back_populates="movies_actors"
+    # )
+
+    # directors: Mapped[List["Person"]] = relationship(
+    #     secondary=directors_movies_table, back_populates="movies_directors"
+    # )
+
+
+class Person(Base):
+    """The table to store actors and directors whom may be of interest.
+
+    `full_name`: a full name of a person
+    `russian_name`: a russian translation of the name
+    `imdb_link`: URL to a web page of the person in IMDb
+
+    `movies_persons`: a list of persons participated in the movie
+    """
+
+    __tablename__ = "person_table"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(128))
+    russian_name: Mapped[str] = mapped_column(String(128), nullable=True)
+    imdb_link: Mapped[str] = mapped_column(String(128), nullable=True)
+
+    movies_persons: Mapped[List["Movie"]] = relationship(
+        secondary=movies_persons_table, back_populates="persons"
     )
-
-    actors: Mapped[List["Person"]] = relationship(
-        secondary=actors_movies_table, back_populates="movies_actors"
-    )
-
-    directors: Mapped[List["Person"]] = relationship(
-        secondary=directors_movies_table, back_populates="movies_directors"
-    )
-
