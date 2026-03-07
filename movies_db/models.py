@@ -17,11 +17,12 @@ class Base(DeclarativeBase):
     pass
 
 
-movies_persons_table = Table(
-    "movies_persons_table",
+cast_table = Table(
+    "cast_table",
     Base.metadata,
     Column("person_id", ForeignKey("person_table.id"), primary_key=True),
     Column("movie_id", ForeignKey("movie_table.id"), primary_key=True),
+    Column("type_id", ForeignKey("type_table.id"), primary_key=True),
 )
 
 
@@ -129,9 +130,9 @@ class Movie(Base):
     #     secondary=genres_movies_table, back_populates="movies"
     # )
 
-    # actors: Mapped[List["Person"]] = relationship(
-    #     secondary=actors_movies_table, back_populates="movies_actors"
-    # )
+    persons: Mapped[List["Person"]] = relationship(
+        secondary=cast_table, back_populates="cast"
+    )
 
     # directors: Mapped[List["Person"]] = relationship(
     #     secondary=directors_movies_table, back_populates="movies_directors"
@@ -139,13 +140,13 @@ class Movie(Base):
 
 
 class Person(Base):
-    """The table to store actors and directors whom may be of interest.
+    """The table to store important people in the film industry.
 
     `full_name`: a full name of a person
     `russian_name`: a russian translation of the name
     `imdb_link`: URL to a web page of the person in IMDb
 
-    `movies_persons`: a list of persons participated in the movie
+    `cast`: a list of persons participated in the movie
     """
 
     __tablename__ = "person_table"
@@ -155,6 +156,6 @@ class Person(Base):
     russian_name: Mapped[str] = mapped_column(String(128), nullable=True)
     imdb_link: Mapped[str] = mapped_column(String(128), nullable=True)
 
-    movies_persons: Mapped[List["Movie"]] = relationship(
-        secondary=movies_persons_table, back_populates="persons"
+    cast: Mapped[List["Movie"]] = relationship(
+        secondary=cast_table, back_populates="persons"
     )

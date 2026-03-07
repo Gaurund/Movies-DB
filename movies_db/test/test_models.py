@@ -1,17 +1,17 @@
-from datetime import datetime
+from datetime import datetime, time
 from unittest import TestCase
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, selectinload
-from movies_db.models import Base, Disk, File
+from movies_db.models import Base, Disk, File, Movie, Person, Type, cast_table
 
 
-class TestDiskModel(TestCase):
+class TestModels(TestCase):
+
     def setUp(self):
-        # Create database connection and tables if necessary
+        # Create database connection and tables
         self.engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(self.engine)
-        # self.session = Session(self.engine)
         with Session(self.engine) as session:
             disk = Disk(
                 id=1,
@@ -27,10 +27,12 @@ class TestDiskModel(TestCase):
                 file_name="test_file.mkv",
                 disk_path="/path/to/disk/image",
                 st_ino="12345",
+                hash="abcdef1234567890",
                 last_modified=datetime(2024, 6, 1, 12, 0, 0),
                 size=1000000,
                 is_active=True,
                 disk_id=1,
+                movie_id=1,
             )
             session.add(file1)
             file2 = File(
@@ -38,23 +40,54 @@ class TestDiskModel(TestCase):
                 file_name="test_file_2.mkv",
                 disk_path="/path/to/disk/image",
                 st_ino="12350",
+                hash="abcdef1234567890",
                 last_modified=datetime(2020, 5, 1, 11, 0, 0),
                 size=1000000,
                 is_active=True,
                 disk_id=1,
+                movie_id=1,
             )
             session.add(file2)
+            type1 = Type(id=1, type_name="Test Type", russian_type_name="Тестовый тип")
+            session.add(type1)
+            type2 = Type(
+                id=2, type_name="Test Type 2", russian_type_name="Тестовый тип 2"
+            )
+            session.add(type2)
+            movie = Movie(
+                id=1,
+                name_original="Test Movie",
+                name_russian="Тестовый фильм",
+                duration=time(2, 0, 0),
+                premiere_date="2024",
+                imdb_link="https://www.imdb.com/title/tt0000000/",
+                description="A test movie for unit testing.",
+                type_id=1,
+            )
+            session.add(movie)
+            person1 = Person(id=1, full_name="Test Actor", russian_name="Тестовый актер")
+            session.add(person1)
+            cast_entry = {"person_id": 1, "movie_id": 1, "type_id": 1}
+            session.execute(cast_table.insert().values(cast_entry))
             session.commit()
             self.disk = session.scalars(
                 select(Disk).options(selectinload(Disk.files)).where(Disk.id == 1)
             ).first()
             self.file = session.get(File, 1)
             self.none_disk = session.get(Disk, 0)
+            self.movie = session.scalars(
+                select(Movie)
+                .options(selectinload(Movie.files), selectinload(Movie.movie_type))
+                .where(Movie.id == 1)
+            ).first()
+            self.type = session.scalars(
+                select(Type).options(selectinload(Type.movies)).where(Type.id == 1)
+            ).first()
+            self.person1 = session.get(Person, 1)
 
     def tearDown(self):
-        # Clean up database connection
-        # self.session.close()
-        pass
+        # Close database connection
+        self.engine.dispose()
 
     def test_disk_model_creation(self):
         self.assertEqual(self.disk.id, 1)
@@ -73,7 +106,35 @@ class TestDiskModel(TestCase):
         self.assertEqual(self.file.file_name, "test_file.mkv")
         self.assertEqual(self.file.disk_path, "/path/to/disk/image")
         self.assertEqual(self.file.st_ino, "12345")
+        self.assertEqual(self.file.hash, "abcdef1234567890")
         self.assertEqual(self.file.last_modified, datetime(2024, 6, 1, 12, 0, 0))
         self.assertEqual(self.file.size, 1000000)
         self.assertTrue(self.file.is_active)
         self.assertEqual(self.file.disk_id, 1)
+
+    def test_movie_model_creation(self):
+        self.assertEqual(self.movie.id, 1)
+        self.assertEqual(self.movie.name_original, "Test Movie")
+        self.assertEqual(self.movie.name_russian, "Тестовый фильм")
+        self.assertEqual(self.movie.duration, time(2, 0, 0))
+        self.assertEqual(self.movie.premiere_date, "2024")
+        self.assertEqual(self.movie.imdb_link, "https://www.imdb.com/title/tt0000000/")
+        self.assertEqual(self.movie.description, "A test movie for unit testing.")
+        self.assertTrue(self.movie.is_active)
+        self.assertEqual(len(self.movie.files), 2)
+        self.assertEqual(self.movie.files[0].file_name, "test_file.mkv")
+        self.assertEqual(self.movie.files[1].file_name, "test_file_2.mkv")
+        self.assertEqual(self.movie.type_id, 1)
+        self.assertEqual(self.movie.movie_type.type_name, "Test Type")
+
+    def test_type_model_creation(self):
+        self.assertEqual(self.type.id, 1)
+        self.assertEqual(self.type.type_name, "Test Type")
+        self.assertEqual(self.type.russian_type_name, "Тестовый тип")
+        self.assertEqual(len(self.type.movies), 1)
+        self.assertEqual(self.type.movies[0].name_original, "Test Movie")
+
+    def test_person_model_creation(self):
+        self.assertEqual(self.person1.id, 1)
+        self.assertEqual(self.person1.full_name, "Test Actor")
+        self.assertEqual(self.person1.russian_name, "Тестовый актер")
