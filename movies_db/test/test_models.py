@@ -3,7 +3,7 @@ from unittest import TestCase
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, selectinload
-from movies_db.models import Base, Disk, File, Movie, Person, Type, cast_table
+from movies_db.models import Base, Disk, File, Franchise, Movie, Person, Type
 
 
 class TestModels(TestCase):
@@ -54,7 +54,12 @@ class TestModels(TestCase):
                 id=2, type_name="Test Type 2", russian_type_name="Тестовый тип 2"
             )
             session.add(type2)
-            movie = Movie(
+            franchise1 = Franchise(
+                id=1,
+                franchise="Test Franchise",
+            )
+            session.add(franchise1)
+            movie1 = Movie(
                 id=1,
                 name_original="Test Movie",
                 name_russian="Тестовый фильм",
@@ -64,11 +69,25 @@ class TestModels(TestCase):
                 description="A test movie for unit testing.",
                 type_id=1,
             )
-            session.add(movie)
-            person1 = Person(id=1, full_name="Test Actor", russian_name="Тестовый актер")
+            session.add(movie1)
+            movie2 = Movie(
+                id=2,
+                name_original="Test Movie 2",
+                name_russian="Тестовый фильм 2",
+                duration=time(2, 0, 0),
+                premiere_date="2024",
+                imdb_link="https://www.imdb.com/title/tt0000001/",
+                description="A test movie for unit testing.",
+                type_id=1,
+                franchise_id=1,
+                franchise_part=2,
+            )
+            session.add(movie2)
+
+            person1 = Person(
+                id=1, full_name="Test Actor", russian_name="Тестовый актер"
+            )
             session.add(person1)
-            cast_entry = {"person_id": 1, "movie_id": 1, "type_id": 1}
-            session.execute(cast_table.insert().values(cast_entry))
             session.commit()
             self.disk = session.scalars(
                 select(Disk).options(selectinload(Disk.files)).where(Disk.id == 1)
@@ -80,6 +99,10 @@ class TestModels(TestCase):
                 .options(selectinload(Movie.files), selectinload(Movie.movie_type))
                 .where(Movie.id == 1)
             ).first()
+            self.franchise = session.get(Franchise, 1)
+            self.fr_movies = session.scalars(
+                select(Movie).where(Movie.franchise_id != None)
+            ).all()
             self.type = session.scalars(
                 select(Type).options(selectinload(Type.movies)).where(Type.id == 1)
             ).first()
@@ -131,10 +154,17 @@ class TestModels(TestCase):
         self.assertEqual(self.type.id, 1)
         self.assertEqual(self.type.type_name, "Test Type")
         self.assertEqual(self.type.russian_type_name, "Тестовый тип")
-        self.assertEqual(len(self.type.movies), 1)
+        self.assertEqual(len(self.type.movies), 2)
         self.assertEqual(self.type.movies[0].name_original, "Test Movie")
+        self.assertEqual(self.type.movies[1].name_original, "Test Movie 2")
 
     def test_person_model_creation(self):
         self.assertEqual(self.person1.id, 1)
         self.assertEqual(self.person1.full_name, "Test Actor")
         self.assertEqual(self.person1.russian_name, "Тестовый актер")
+
+    def test_franchise_model_creation(self):
+        self.assertEqual(self.franchise.id, 1)
+        self.assertEqual(self.franchise.franchise, "Test Franchise")
+        self.assertEqual(len(self.fr_movies), 1)
+        self.assertEqual(self.fr_movies[0].name_original, "Test Movie 2")

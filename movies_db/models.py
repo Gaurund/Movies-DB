@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     ForeignKey,
+    Integer,
     String,
     Table,
     Text,
@@ -17,13 +18,12 @@ class Base(DeclarativeBase):
     pass
 
 
-cast_table = Table(
-    "cast_table",
-    Base.metadata,
-    Column("person_id", ForeignKey("person_table.id"), primary_key=True),
-    Column("movie_id", ForeignKey("movie_table.id"), primary_key=True),
-    Column("type_id", ForeignKey("type_table.id"), primary_key=True),
-)
+# person_type_table = Table(
+#     "person_type_table",
+#     Base.metadata,
+#     Column("person_id", ForeignKey("person_table.id"), primary_key=True),
+#     Column("type_id", ForeignKey("type_table.id"), primary_key=True),
+# )
 
 
 class Type(Base):
@@ -93,6 +93,22 @@ class Disk(Base):
     files: Mapped[List[File]] = relationship(back_populates="disk")
 
 
+
+class Franchise(Base):
+    """The table to organize movies into franchises.
+
+    franchise: a name of a franchise
+    movies: a list of movies linked to the franchise
+    """
+    __tablename__ = "franchise_table"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    franchise: Mapped[str] = mapped_column(String(64))
+    
+    movies: Mapped[List["Movie"]] = relationship(
+        back_populates="franchise"
+    )
+
 class Movie(Base):
     """The table to store movies and TV shows.
 
@@ -122,17 +138,17 @@ class Movie(Base):
     type_id: Mapped[int] = mapped_column(ForeignKey("type_table.id"), nullable=True)
     movie_type: Mapped["Type"] = relationship(back_populates="movies")
 
-    # franchise_id: Mapped[int] = mapped_column(ForeignKey("franchise_table.id"), nullable=True)
-    # franchise: Mapped["Franchise"] = relationship(back_populates="movies")
-    # franchise_part: Mapped[int] = mapped_column(Integer, nullable=True)
+    franchise_id: Mapped[int] = mapped_column(ForeignKey("franchise_table.id"), nullable=True)
+    franchise: Mapped["Franchise"] = relationship(back_populates="movies")
+    franchise_part: Mapped[int] = mapped_column(Integer, nullable=True)
 
     # genres: Mapped[List["Genre"]] = relationship(
     #     secondary=genres_movies_table, back_populates="movies"
     # )
 
-    persons: Mapped[List["Person"]] = relationship(
-        secondary=cast_table, back_populates="cast"
-    )
+    # persons: Mapped[List["Person"]] = relationship(
+    #     secondary=cast_table, back_populates="cast"
+    # )
 
     # directors: Mapped[List["Person"]] = relationship(
     #     secondary=directors_movies_table, back_populates="movies_directors"
@@ -156,6 +172,4 @@ class Person(Base):
     russian_name: Mapped[str] = mapped_column(String(128), nullable=True)
     imdb_link: Mapped[str] = mapped_column(String(128), nullable=True)
 
-    cast: Mapped[List["Movie"]] = relationship(
-        secondary=cast_table, back_populates="persons"
-    )
+
