@@ -3,7 +3,17 @@ from unittest import TestCase
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, selectinload
-from movies_db.models import Base, Disk, File, Franchise, Movie, Person, Type
+from movies_db.models import (
+    Base,
+    Cast,
+    Disk,
+    File,
+    Franchise,
+    Genre,
+    Movie,
+    Person,
+    Type,
+)
 
 
 class TestModels(TestCase):
@@ -59,6 +69,11 @@ class TestModels(TestCase):
                 franchise="Test Franchise",
             )
             session.add(franchise1)
+            genres = ["Action", "Comedy", "Drama", "Sci-Fi"]
+            for i, genre in enumerate(genres):
+                session.add(
+                    Genre(id=i, eng_genre=genre, rus_genre=f"Тестовый жанр {i}")
+                )
             movie1 = Movie(
                 id=1,
                 name_original="Test Movie",
@@ -68,6 +83,7 @@ class TestModels(TestCase):
                 imdb_link="https://www.imdb.com/title/tt0000000/",
                 description="A test movie for unit testing.",
                 type_id=1,
+                genres=[session.get(Genre, i) for i in range(3)],
             )
             session.add(movie1)
             movie2 = Movie(
@@ -88,6 +104,8 @@ class TestModels(TestCase):
                 id=1, full_name="Test Actor", russian_name="Тестовый актер"
             )
             session.add(person1)
+            cast = Cast(movie_id=1, person_id=1, type_id=1)
+            session.add(cast)
             session.commit()
             self.disk = session.scalars(
                 select(Disk).options(selectinload(Disk.files)).where(Disk.id == 1)
@@ -96,7 +114,11 @@ class TestModels(TestCase):
             self.none_disk = session.get(Disk, 0)
             self.movie = session.scalars(
                 select(Movie)
-                .options(selectinload(Movie.files), selectinload(Movie.movie_type))
+                .options(
+                    selectinload(Movie.files),
+                    selectinload(Movie.movie_type),
+                    selectinload(Movie.genres),
+                )
                 .where(Movie.id == 1)
             ).first()
             self.franchise = session.get(Franchise, 1)
@@ -107,6 +129,14 @@ class TestModels(TestCase):
                 select(Type).options(selectinload(Type.movies)).where(Type.id == 1)
             ).first()
             self.person1 = session.get(Person, 1)
+            self.genres = session.scalars(select(Genre)).all()
+            self.cast = session.scalars(
+                select(Cast).options(
+                    selectinload(Cast.movie),
+                    selectinload(Cast.person),
+                    selectinload(Cast.type),
+                )
+            ).all()
 
     def tearDown(self):
         # Close database connection
@@ -168,3 +198,29 @@ class TestModels(TestCase):
         self.assertEqual(self.franchise.franchise, "Test Franchise")
         self.assertEqual(len(self.fr_movies), 1)
         self.assertEqual(self.fr_movies[0].name_original, "Test Movie 2")
+
+    def test_genre_model_creation(self):
+        self.assertEqual(len(self.genres), 4)
+        self.assertEqual(self.genres[0].eng_genre, "Action")
+        self.assertEqual(self.genres[0].rus_genre, "Тестовый жанр 0")
+        self.assertEqual(self.genres[1].eng_genre, "Comedy")
+        self.assertEqual(self.genres[1].rus_genre, "Тестовый жанр 1")
+        self.assertEqual(self.genres[2].eng_genre, "Drama")
+        self.assertEqual(self.genres[2].rus_genre, "Тестовый жанр 2")
+        self.assertEqual(self.genres[3].eng_genre, "Sci-Fi")
+        self.assertEqual(self.genres[3].rus_genre, "Тестовый жанр 3")
+
+    def test_genre_movie_relationship(self):
+        self.assertEqual(len(self.movie.genres), 3)
+        self.assertEqual(self.movie.genres[0].eng_genre, "Action")
+        self.assertEqual(self.movie.genres[1].eng_genre, "Comedy")
+        self.assertEqual(self.movie.genres[2].eng_genre, "Drama")
+
+    def test_cast_model_creation(self):
+        self.assertEqual(len(self.cast), 1)
+        self.assertEqual(self.cast[0].movie_id, 1)
+        self.assertEqual(self.cast[0].person_id, 1)
+        self.assertEqual(self.cast[0].type_id, 1)
+        self.assertEqual(self.cast[0].movie.name_original, "Test Movie")
+        self.assertEqual(self.cast[0].person.full_name, "Test Actor")
+        self.assertEqual(self.cast[0].type.type_name, "Test Type")
