@@ -36,7 +36,6 @@ class TestModels(TestCase):
                 id=1,
                 file_name="test_file.mkv",
                 disk_path="/path/to/disk/image",
-                st_ino="12345",
                 hash="abcdef1234567890",
                 last_modified=datetime(2024, 6, 1, 12, 0, 0),
                 size=1000000,
@@ -49,7 +48,6 @@ class TestModels(TestCase):
                 id=2,
                 file_name="test_file_2.mkv",
                 disk_path="/path/to/disk/image",
-                st_ino="12350",
                 hash="abcdef1234567890",
                 last_modified=datetime(2020, 5, 1, 11, 0, 0),
                 size=1000000,
@@ -158,7 +156,6 @@ class TestModels(TestCase):
         self.assertEqual(self.file.id, 1)
         self.assertEqual(self.file.file_name, "test_file.mkv")
         self.assertEqual(self.file.disk_path, "/path/to/disk/image")
-        self.assertEqual(self.file.st_ino, "12345")
         self.assertEqual(self.file.hash, "abcdef1234567890")
         self.assertEqual(self.file.last_modified, datetime(2024, 6, 1, 12, 0, 0))
         self.assertEqual(self.file.size, 1000000)

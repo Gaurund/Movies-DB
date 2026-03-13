@@ -1,4 +1,3 @@
-import hashlib
 from hashlib import sha256
 from pathlib import Path
 from mimetypes import guess_file_type
@@ -26,18 +25,16 @@ def collect_video_files(path_str: str) -> DeviceFiles:
                         path=str(root),
                         size=full_path.stat().st_size,
                         last_mod=datetime.fromtimestamp(full_path.stat().st_mtime),
-                        st_ino=str(full_path.stat().st_ino),
-                        hash=hash_first_4kb(full_path),
+                        hash_=hash_first_64kb(full_path),
                     )
                 )
-
     return dev_files
 
 
-def hash_first_4kb(filepath) -> str:
+def hash_first_64kb(filepath) -> str:
     hasher = sha256()
     with open(filepath, "rb") as f:
-        chunk = f.read(4096)
+        chunk = f.read(65536)
         hasher.update(chunk)
     return hasher.hexdigest()
 
@@ -46,3 +43,4 @@ if __name__ == "__main__":
     video = collect_video_files("D:/Temp/v/")
     for file in video.files:
         print(file)
+

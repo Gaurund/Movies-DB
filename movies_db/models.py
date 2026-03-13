@@ -46,7 +46,6 @@ class File(Base):
 
     `file_name`: the name of the file.
     `disk_path`: the path to the file on disk excluding the file name.
-    `st_ino`: the inode number of the file on disk.
     `hash`: the hash of the first 4KB of the file.
     `last_modified`: the last modification date of the file.
     `size`: the size of the file in bytes.
@@ -61,7 +60,6 @@ class File(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     file_name: Mapped[str] = mapped_column(String(160))
     disk_path: Mapped[str] = mapped_column(Text)
-    st_ino: Mapped[str] = mapped_column(String(28))
     hash: Mapped[str] = mapped_column(String(64))
     last_modified: Mapped[datetime]
     size: Mapped[int] = mapped_column(BigInteger)
