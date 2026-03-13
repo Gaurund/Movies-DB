@@ -4,6 +4,7 @@ import requests
 
 
 def grab_page(url: str) -> requests.Response:
+    """Grabs the HTML content of a movie page from IMDb."""
     headers = {
         "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
         "accept-encoding": "gzip, deflate, br, zstd",
@@ -24,7 +25,9 @@ def grab_page(url: str) -> requests.Response:
     return response
 
 
-def strip_page_details(response_text: str) -> dict:
+def extract_movie_details(response_text: str) -> dict:
+    """Extracts details like name, duration, premiere date, 
+    genres, directors, and actors."""
     soup = BeautifulSoup(response_text, features="html.parser")
     movie_tags = [
         span.get_text()
@@ -59,12 +62,17 @@ def strip_page_details(response_text: str) -> dict:
     }
     return movie
 
+
 def process_movie_page(url: str) -> dict:
+    """Grabs a movie page and extracts its details."""
     response = grab_page(url)
     if response.status_code != 200:
-        raise ValueError(f"Failed to grab page: {url} (status code: {response.status_code})")
-    movie_details = strip_page_details(response.text)
+        raise ValueError(
+            f"Failed to grab page: {url} (status code: {response.status_code})"
+        )
+    movie_details = extract_movie_details(response.text)
     return movie_details
+
 
 if __name__ == "__main__":
 
@@ -86,7 +94,7 @@ if __name__ == "__main__":
     def test_strip_page_details(filename: str):
         with open(f"movies_db/test/{filename}", "r", encoding="utf-8") as f:
             page = f.read()
-            movie = strip_page_details(page)
+            movie = extract_movie_details(page)
             print_movie_details(movie)
             print("-" * 40)
 

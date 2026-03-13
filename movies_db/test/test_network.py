@@ -9,7 +9,7 @@ class TestGrabPage(TestCase):
     def test_strip_page_details(self):
         with open("movies_db/test/test_page_shawshank.html", "r", encoding="utf-8") as f:
             page = f.read()
-        movie = network.strip_page_details(page)
+        movie = network.extract_movie_details(page)
         self.assertEqual(movie["name_original"], "The Shawshank Redemption")
         self.assertEqual(movie["name_russian"], "Побег из Шоушенка")
 
@@ -29,7 +29,7 @@ class TestStripPageDetails(TestCase):
     def test_strip_page_details(self):
         with open("movies_db/test/test_page_shawshank.html", "r", encoding="utf-8") as f:
             page = f.read()
-        movie = network.strip_page_details(page)
+        movie = network.extract_movie_details(page)
         self.assertEqual(movie["name_original"], "The Shawshank Redemption")
         self.assertEqual(movie["name_russian"], "Побег из Шоушенка")
         self.assertEqual(movie["duration"], "PT2H22M")
