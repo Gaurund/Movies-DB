@@ -59,6 +59,12 @@ def strip_page_details(response_text: str) -> dict:
     }
     return movie
 
+def process_movie_page(url: str) -> dict:
+    response = grab_page(url)
+    if response.status_code != 200:
+        raise ValueError(f"Failed to grab page: {url} (status code: {response.status_code})")
+    movie_details = strip_page_details(response.text)
+    return movie_details
 
 if __name__ == "__main__":
 
