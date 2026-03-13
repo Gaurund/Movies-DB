@@ -7,6 +7,8 @@ from datetime import datetime
 
 
 def collect_video_files(path_str: str) -> DeviceFiles:
+    """Collects video files from the specified path and returns 
+    a DeviceFiles object."""
     path: Path = Path(path_str)
     total, _, free = disk_usage(path)
     device = Device(capacity=total, free=free, st_dev=str(Path(path).stat().st_dev))
@@ -32,6 +34,7 @@ def collect_video_files(path_str: str) -> DeviceFiles:
 
 
 def hash_first_64kb(filepath) -> str:
+    """Calculates the hash of the first 64KB of the file."""
     hasher = sha256()
     with open(filepath, "rb") as f:
         chunk = f.read(65536)
