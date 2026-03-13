@@ -1,3 +1,6 @@
+import json
+import re
+from bs4 import BeautifulSoup
 import requests
 
 def grab_page(url: str) -> requests.Response:
@@ -19,3 +22,47 @@ def grab_page(url: str) -> requests.Response:
     response = requests.get(url, headers=headers)
     assert response.status_code == 200
     return response
+
+def strip_page_details(response_text: str) -> dict:
+    def href_releaseinfo(href):
+        return href and re.compile("releaseinfo").search(href)
+
+    soup = BeautifulSoup(response_text, features="html.parser")
+    movie_tags = [
+        span.text for span in soup.select("div.ipc-chip-list__scroller > a > span")
+    ]
+    script_json = soup.find_all(type="application/ld+json")
+    json_dict = json.loads(script_json[0].text)
+    premiere_link = soup.find(href=href_releaseinfo)
+
+    if "duration" in json_dict.keys():
+        duration = json_dict["duration"]
+    else:
+        duration = None
+
+    movie = {
+        "name_original": json_dict["name"],
+        "name_russian": json_dict["alternateName"],
+        "duration": duration,
+        "premiere_date": premiere_link.text,
+        "imdb_link": json_dict["url"],
+        "type": json_dict["@type"],
+        "genres": movie_tags,
+    }
+    return movie
+
+if __name__ == "__main__":
+    def test_strip_page_details(filename: str):
+        with open(f"movies_db/test/{filename}", "r", encoding="utf-8") as f:
+            page = f.read()
+            movie = strip_page_details(page)
+            print(movie)
+
+    def save_grabbed_page(url: str, filename: str):
+        response = grab_page(url)
+        with open(f"movies_db/test/{filename}", "w", encoding="utf-8") as f:
+            f.write(response.text)
+
+    test_strip_page_details('test_page_cold_case.html')
+    # save_grabbed_page("https://www.imdb.com/title/tt0368479/", "test_page_cold_case.html")
+    

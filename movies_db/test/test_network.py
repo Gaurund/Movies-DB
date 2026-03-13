@@ -1,7 +1,17 @@
+from contextlib import AbstractContextManager
+from typing import Any
+
 import movies_db.network as network
 from unittest import TestCase
 
 class TestNetwork(TestCase):
+
+    def test_strip_page_details(self):
+        with open("movies_db/test/test_page_shawshank.html", "r", encoding="utf-8") as f:
+            page = f.read()
+        movie = network.strip_page_details(page)
+        self.assertEqual(movie["name_original"], "The Shawshank Redemption")
+        self.assertEqual(movie["name_russian"], "Побег из Шоушенка")
 
     def test_grab_page(self):
         url = "https://www.imdb.com/title/tt0111161/"
@@ -13,3 +23,4 @@ class TestNetwork(TestCase):
         url = "https://www.imdb.com/title/tt0000000/"
         with self.assertRaises(AssertionError):
             network.grab_page(url)
+    
