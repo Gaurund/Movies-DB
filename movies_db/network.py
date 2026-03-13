@@ -1,7 +1,7 @@
 import json
-import re
 from bs4 import BeautifulSoup
 import requests
+
 
 def grab_page(url: str) -> requests.Response:
     headers = {
@@ -23,46 +23,72 @@ def grab_page(url: str) -> requests.Response:
     assert response.status_code == 200
     return response
 
-def strip_page_details(response_text: str) -> dict:
-    def href_releaseinfo(href):
-        return href and re.compile("releaseinfo").search(href)
 
+def strip_page_details(response_text: str) -> dict:
     soup = BeautifulSoup(response_text, features="html.parser")
     movie_tags = [
-        span.text for span in soup.select("div.ipc-chip-list__scroller > a > span")
+        span.get_text()
+        for span in soup.select("div.ipc-chip-list__scroller > a > span")
     ]
-    script_json = soup.find_all(type="application/ld+json")
-    json_dict = json.loads(script_json[0].text)
-    premiere_link = soup.find(href=href_releaseinfo)
+    script_json = soup.find("script", type="application/ld+json")
+    data = json.loads(script_json.text) if script_json else {}
+    premiere_link = soup.select_one('a[href*="releaseinfo"]')
 
-    if "duration" in json_dict.keys():
-        duration = json_dict["duration"]
-    else:
-        duration = None
+    directors = []
+    for person in data["director"] if "director" in data else []:
+        directors.append(
+            {"name": person.get("name", "N/A"), "imdb_link": person.get("url", "N/A")}
+        )
+
+    actors = []
+    for person in data["actor"] if "actor" in data else []:
+        actors.append(
+            {"name": person.get("name", "N/A"), "imdb_link": person.get("url", "N/A")}
+        )
 
     movie = {
-        "name_original": json_dict["name"],
-        "name_russian": json_dict["alternateName"],
-        "duration": duration,
-        "premiere_date": premiere_link.text,
-        "imdb_link": json_dict["url"],
-        "type": json_dict["@type"],
+        "name_original": data.get("name"),
+        "name_russian": data.get("alternateName"),
+        "duration": data.get("duration", None),
+        "premiere_date": premiere_link.get_text(strip=True) if premiere_link else None,
+        "imdb_link": data.get("url"),
+        "type": data.get("@type"),
         "genres": movie_tags,
+        "directors": directors,
+        "actors": actors,
     }
     return movie
 
+
 if __name__ == "__main__":
+
+    def print_movie_details(movie: dict):
+        print(f"Original Name: {movie['name_original']}")
+        print(f"Russian Name: {movie['name_russian']}")
+        print(f"Duration: {movie['duration']}")
+        print(f"Premiere Date: {movie['premiere_date']}")
+        print(f"IMDb Link: {movie['imdb_link']}")
+        print(f"Type: {movie['type']}")
+        print(f"Genres: {', '.join(movie['genres'])}")
+        print("Directors:")
+        for director in movie["directors"]:
+            print(f"  - {director['name']} ({director['imdb_link']})")
+        print("Actors:")
+        for actor in movie["actors"]:
+            print(f"  - {actor['name']} ({actor['imdb_link']})")
+
     def test_strip_page_details(filename: str):
         with open(f"movies_db/test/{filename}", "r", encoding="utf-8") as f:
             page = f.read()
             movie = strip_page_details(page)
-            print(movie)
+            print_movie_details(movie)
+            print("-" * 40)
 
     def save_grabbed_page(url: str, filename: str):
         response = grab_page(url)
         with open(f"movies_db/test/{filename}", "w", encoding="utf-8") as f:
             f.write(response.text)
 
-    test_strip_page_details('test_page_cold_case.html')
+    test_strip_page_details("test_page_shawshank.html")
+    test_strip_page_details("test_page_cold_case.html")
     # save_grabbed_page("https://www.imdb.com/title/tt0368479/", "test_page_cold_case.html")
-    
